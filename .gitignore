@@ -19,3 +19,10 @@
 
 # Go workspace file
 go.work
+
+# Work dirs for program
+saves
+results
+
+# IDEA settings
+.idea
