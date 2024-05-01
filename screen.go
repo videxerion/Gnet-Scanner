@@ -8,16 +8,16 @@ import (
 	"time"
 )
 
-var clear map[string]func()
+var clearScreen map[string]func()
 
 func init() {
-	clear = make(map[string]func())
-	clear["linux"] = func() {
+	clearScreen = make(map[string]func())
+	clearScreen["linux"] = func() {
 		cmd := exec.Command("clear")
 		cmd.Stdout = os.Stdout
 		cmd.Run()
 	}
-	clear["windows"] = func() {
+	clearScreen["windows"] = func() {
 		cmd := exec.Command("cmd", "/c", "cls")
 		cmd.Stdout = os.Stdout
 		cmd.Run()
@@ -25,17 +25,17 @@ func init() {
 }
 
 func CallClear() {
-	value, ok := clear[runtime.GOOS]
+	value, ok := clearScreen[runtime.GOOS]
 	if ok {
 		value()
 	} else {
-		panic("Your platform is unsupported! I can't clear terminal screen :(")
+		panic("Your platform is unsupported! I can't clearScreen terminal screen :(")
 	}
 }
 
 func speedMeter() {
-	var oldCount int
-	var newCount int
+	var oldCount uint64
+	var newCount uint64
 
 	for {
 		oldCount = scannedAddress
@@ -67,14 +67,14 @@ func infoScreen() {
 		CallClear()
 
 		println("Count DB Threads:", countDbThreads)
-		println("Count Threads:", countThreads)
+		println("Count Threads:\t ", countThreads)
 		println(
-			"Progress:",
-			strconv.Itoa(scannedAddress)+"/"+strconv.Itoa(countAddress),
+			"Progress:\t ",
+			strconv.FormatUint(scannedAddress, 10)+"/"+strconv.FormatUint(countAddress, 10),
 			strconv.FormatFloat(percentageOfNumber(float64(scannedAddress), float64(countAddress)), 'f', 2, 64)+"%",
 		)
-		println("Speed:", speed, "ip/s")
-		println("Time left:", timeLeftString)
+		println("Speed:\t\t ", speed, "ip/s")
+		println("Time left:\t ", timeLeftString)
 		println("Allocated memory:", allocatedMemoryString)
 
 		if !pauseState {

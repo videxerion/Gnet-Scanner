@@ -12,12 +12,12 @@ import (
 )
 
 func prof() {
-	log.Println(http.ListenAndServe("localhost:6060", nil))
+	log.Println(http.ListenAndServe("localhost:6061", nil))
 }
 
 func downloadDump() {
 	// URL, с которого нужно скачать файл
-	url := "http://127.0.0.1:6060/debug/pprof/heap"
+	url := "http://127.0.0.1:6061/debug/pprof/heap"
 
 	// Создаем HTTP-запрос
 	resp, err := http.Get(url)

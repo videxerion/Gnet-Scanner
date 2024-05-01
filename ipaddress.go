@@ -3,12 +3,12 @@ package main
 import "net"
 
 // Преобразование IP-адреса в uint32
-func ipToUint32(ip net.IP) uint32 {
-	return uint32(ip[0])<<24 | uint32(ip[1])<<16 | uint32(ip[2])<<8 | uint32(ip[3])
+func ipToUint64(ip net.IP) uint64 {
+	return uint64(ip[0])<<24 | uint64(ip[1])<<16 | uint64(ip[2])<<8 | uint64(ip[3])
 }
 
 // Преобразование uint32 в IP-адрес
-func uint32ToIP(value uint32) net.IP {
+func uint64ToIP(value uint64) net.IP {
 	ip := make(net.IP, 4)
 	ip[0] = byte(value >> 24)
 	ip[1] = byte(value >> 16)
@@ -28,7 +28,7 @@ func nextIP(ip net.IP) net.IP {
 	return nil // Переполнение
 }
 
-func countIPAddresses(cidr string) (int, error) {
+func countIPAddresses(cidr string) (uint64, error) {
 	// Разбираем CIDR-нотацию
 	_, ipnet, err := net.ParseCIDR(cidr)
 	if err != nil {
@@ -38,7 +38,7 @@ func countIPAddresses(cidr string) (int, error) {
 	// Получаем маску сети и вычисляем количество адресов по маске
 	mask := ipnet.Mask
 	ones, _ := mask.Size()
-	count := 1 << (32 - ones) // 2^(32-бит_маски)
+	var count uint64 = 1 << (32 - ones) // 2^(32-бит_маски)
 
 	return count, nil
 }

@@ -7,21 +7,9 @@ import (
 	"os"
 )
 
-type db struct {
+type Db struct {
 	handler *sql.DB
 	name    string
-}
-
-func addDbThread() {
-	ctDbThMu.Lock()
-	countDbThreads += 1
-	ctDbThMu.Unlock()
-}
-
-func subDbThread() {
-	ctDbThMu.Lock()
-	countDbThreads -= 1
-	ctDbThMu.Unlock()
 }
 
 func directoryExist(filename string) bool {
@@ -37,7 +25,7 @@ func directoryExist(filename string) bool {
 	}
 }
 
-func Database(name string) *db {
+func Database(name string) *Db {
 	if !directoryExist("results") {
 		os.Mkdir("results", 0755)
 	}
@@ -51,20 +39,20 @@ func Database(name string) *db {
 	database.SetMaxOpenConns(0)
 	database.SetMaxIdleConns(100)
 
-	return &db{handler: database, name: name}
+	return &Db{handler: database, name: name}
 }
 
-func (d db) createTable() {
+func (d Db) createTable() {
 	_, err := d.handler.Exec("CREATE TABLE IF NOT EXISTS results (ID INTEGER PRIMARY KEY, ip TEXT, response BLOB)")
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 }
 
-func (d db) Add(ip string, response string) {
+func (d Db) Add(ip string, response string) {
 	// Изменяем счётчик потоков
-	addDbThread()
-	defer subDbThread()
+	incCommonVar(&countDbThreads, &ctDbThMu)
+	defer subCommonVar(&countDbThreads, &ctDbThMu)
 
 	// Блокируем для записи
 	dbWriteMu.Lock()

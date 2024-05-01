@@ -7,13 +7,13 @@ const hour = minute * 60
 const day = hour * 24
 
 type left struct {
-	Days    int
-	Hours   int
-	Minutes int
-	Seconds int
+	Days    uint64
+	Hours   uint64
+	Minutes uint64
+	Seconds uint64
 }
 
-func convertSecondsToTime(seconds int) left {
+func convertSecondsToTime(seconds uint64) left {
 	ret := left{Days: 0, Hours: 0, Minutes: 0, Seconds: 0}
 
 	if seconds == 0 {
@@ -50,16 +50,16 @@ func (lf left) ToString() string {
 	timeLeftString := ""
 
 	if lf.Days != 0 {
-		timeLeftString += strconv.Itoa(lf.Days) + " Days "
+		timeLeftString += strconv.FormatUint(lf.Days, 10) + " Days "
 	}
 	if lf.Hours != 0 {
-		timeLeftString += strconv.Itoa(lf.Hours) + " Hours "
+		timeLeftString += strconv.FormatUint(lf.Hours, 10) + " Hours "
 	}
 	if lf.Minutes != 0 {
-		timeLeftString += strconv.Itoa(lf.Minutes) + " Minutes "
+		timeLeftString += strconv.FormatUint(lf.Minutes, 10) + " Minutes "
 	}
 	if lf.Seconds != 0 {
-		timeLeftString += strconv.Itoa(lf.Seconds) + " Seconds"
+		timeLeftString += strconv.FormatUint(lf.Seconds, 10) + " Seconds"
 	}
 
 	return timeLeftString

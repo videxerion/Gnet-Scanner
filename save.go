@@ -91,24 +91,24 @@ func saveThread(inputNet string, dbName string) {
 		os.Mkdir("saves", 0755)
 	}
 
-	if *saveFlag != "None" {
-		usrSave = parseSaveFile(*saveFlag)
+	if saveFlag != "None" {
+		usrSave = parseSaveFile(saveFlag)
 	}
 
 	var filename string
 
-	if *saveFlag == "None" {
+	if saveFlag == "None" {
 		filename = time.Now().Format(time.DateTime) + " " + strings.Replace(inputNet, "/", "-", -1) + ".gsv"
 	} else {
-		filename = *saveFlag
+		filename = saveFlag
 	}
 
 	var file *os.File
 
-	if *saveFlag == "None" {
+	if saveFlag == "None" {
 		file, err = os.OpenFile("saves/"+filename, os.O_RDWR|os.O_CREATE, 0755)
 	} else {
-		file, err = os.OpenFile(*saveFlag, os.O_RDWR|os.O_CREATE, 0755)
+		file, err = os.OpenFile(saveFlag, os.O_RDWR|os.O_CREATE, 0755)
 	}
 
 	if err != nil {
@@ -120,7 +120,7 @@ func saveThread(inputNet string, dbName string) {
 	for {
 		time.Sleep(time.Second * 1)
 
-		scanned := uint64ToBytes(uint64(scannedAddress))
+		scanned := uint64ToBytes(scannedAddress)
 
 		var wrBuf []byte
 

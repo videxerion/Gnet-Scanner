@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"log"
 	"net"
 	"os"
 	"sync"
@@ -10,162 +9,202 @@ import (
 )
 import _ "net/http/pprof"
 
-var mu sync.Mutex
-var pauseMu sync.Mutex
-var dbWriteMu sync.Mutex
-var ctDbThMu sync.Mutex
-var countThreads int
-var countAddress int
-var scannedAddress int = 0
-var speed int
-var pauseState bool = false
-var countDbThreads int = 0
-var usrSave save
-var saveFlag *string
+// Создаём мютексы
+var (
+	countThreadsMu sync.Mutex
+	pauseMu        sync.Mutex
+	dbWriteMu      sync.Mutex
+	ctDbThMu       sync.Mutex
+)
 
-const chunkSize int = 100
-const limitThreads = 300
+// Переменные для показателей сканированния
+var (
+	countDbThreads uint64 = 0
+	countThreads   uint64 = 0
+	countAddress   uint64 = 0
+	scannedAddress uint64 = 0
+	speed          uint64 = 0
+)
+
+// Инициализируем перменные под флаги
+var (
+	// Функциональные флаги
+	debugFlag bool
+	inputNet  string
+	saveFlag  string
+
+	// Флаги параметров
+	chunkSize      uint64
+	limitThreads   uint64
+	connectTimeout time.Duration
+	readTimeout    time.Duration
+	responseSize   uint64
+)
+
+// Состояния для управления
+var pauseState = false
+
+var usrSave save
 
 func main() {
 	var err error
-	log.Println("Getting flags")
 
-	debugFlag := flag.Bool("debug", false, "enable debug for pprof on localhost:6060")
-	inputNet := flag.String("network", "None", "a network")
-	saveFlag = flag.String("save", "None", "path to save file")
+	// Получение флагов
+	debugFlagObj := flag.Bool("debug", false, "Enable debug for pprof on localhost:6060")
+	inputNetObj := flag.String("network", "None", "Network for scanning")
+	saveFlagObj := flag.String("save", "None", "Path to save file")
+	chunkSizeObj := flag.Uint64("ChunkSize", 100, "Number of addresses in the chunk")
+	limitThreadsObj := flag.Uint64("threads", 50, "Number of scanning threads")
+	connectTimeoutObj := flag.Uint64("ConnectTimeout", 100, "Sets the length of time to wait for a connection (ms)")
+	readTimeoutObj := flag.Uint64("ReadTimeout", 250, "Sets the length of time to wait for reading (ms)")
+	responseSizeObj := flag.Uint64("ResponseSize", GigaByte*2, "Sets the maximum response size (bytes)")
 	flag.Parse()
+	debugFlag = *debugFlagObj
+	inputNet = *inputNetObj
+	saveFlag = *saveFlagObj
+	chunkSize = *chunkSizeObj
+	limitThreads = *limitThreadsObj
+	connectTimeout = time.Duration(*connectTimeoutObj)
+	readTimeout = time.Duration(*readTimeoutObj)
+	responseSize = *responseSizeObj
 
-	if *saveFlag != "None" {
-		usrSave = parseSaveFile(*saveFlag)
-		scannedAddress = int(usrSave.scannedAddr)
+	// Если не указан ни один из обязательных флагов то сообщаем об этом
+	if inputNet == "None" && saveFlag == "None" {
+		println("To start scanning, you must specify the network using the flag: --network {ip/mask}")
+		os.Exit(0)
 	}
 
-	if *saveFlag != "None" && *inputNet != "None" {
+	// Если указаны сразу оба обязательных флага то сообщаем об этом
+	if saveFlag != "None" && inputNet != "None" {
 		println("It is not possible to use the --network flag together with the --save flag")
 		os.Exit(0)
 	}
 
-	if *debugFlag {
+	// Если установленный размер ответа превышает 2 гигабайта то сообщаем об этом
+	if responseSize > GigaByte*2 {
+		println("The maximum response size cannot exceed 2 gigabytes because it corresponds to the BLOB type in sqlite")
+		os.Exit(0)
+	}
+
+	// Если указан путь к файлу сохранения то пытаемся его распарсить
+	if saveFlag != "None" {
+		usrSave = parseSaveFile(saveFlag)
+		scannedAddress = usrSave.scannedAddr
+	}
+
+	// Если включён режим отладки то запускаем pprof на localhost:6060 и детектор утечек
+	if debugFlag {
 		go prof()
 		go leakDetector()
 	}
 
+	// Парсим полученный адрес сети
 	var ipnet *net.IPNet
-	if *saveFlag == "None" {
-		_, ipnet, err = net.ParseCIDR(*inputNet)
+	if saveFlag == "None" {
+		_, ipnet, err = net.ParseCIDR(inputNet)
 	} else {
 		_, ipnet, err = net.ParseCIDR(usrSave.inputNet)
 
 	}
-
 	if err != nil {
 		panic(err)
 	}
 
-	firstIP := ipnet.IP
+	// Создаём и подключаем базу данных
+	var database *Db
+	if saveFlag == "None" {
+		database = Database(time.Now().Format(time.DateTime) + " result.db")
+	} else {
+		database = Database(usrSave.dbName)
+	}
+	database.createTable()
 
-	if *inputNet != "None" || *saveFlag != "None" {
-		log.Println("Creating database")
-		var database *db
-		if *saveFlag == "None" {
-			database = Database(time.Now().Format(time.DateTime) + " result.db")
-		} else {
-			database = Database(usrSave.dbName)
-		}
-		database.createTable()
+	// Считаем кол-во адрессов в указанной сети
+	if saveFlag == "None" {
+		countAddress, err = countIPAddresses(inputNet)
+	} else {
+		countAddress, err = countIPAddresses(usrSave.inputNet)
+	}
+	if err != nil {
+		panic(err)
+	}
 
-		var chunk [chunkSize]string
-		pointer := 0
+	// Запуск служебных потоков
+	go speedMeter()
+	go infoScreen()
+	go interceptingKeystrokes()
+	if saveFlag == "None" {
+		go saveThread(inputNet, database.name)
+	} else {
+		go saveThread(usrSave.inputNet, database.name)
+	}
 
-		start := time.Now()
+	// Вычисляем IP с которого нужно начинать сканирование
+	var startIP net.IP
+	if saveFlag == "None" {
+		startIP = ipnet.IP.Mask(ipnet.Mask)
+	} else {
+		startIPint := ipToUint64(ipnet.IP.Mask(ipnet.Mask))
+		newIPInt := startIPint + scannedAddress
+		startIP = uint64ToIP(newIPInt)
+	}
 
-		if *saveFlag == "None" {
-			countAddress, err = countIPAddresses(*inputNet)
-		} else {
-			countAddress, err = countIPAddresses(usrSave.inputNet)
-		}
-		if err != nil {
-			panic(err)
-		}
+	chunk := make([]string, chunkSize)
+	var pointer uint64 = 0
 
-		go speedMeter()
-		go infoScreen()
-		go interceptingKeystrokes()
-		if *saveFlag == "None" {
-			go saveThread(*inputNet, database.name)
-		} else {
-			go saveThread(usrSave.inputNet, database.name)
-		}
-
-		var startIP net.IP
-
-		if *saveFlag == "None" {
-			startIP = firstIP.Mask(ipnet.Mask)
-		} else {
-			startIPint := ipToUint32(firstIP.Mask(ipnet.Mask))
-			newIPInt := startIPint + uint32(scannedAddress)
-			startIP = uint32ToIP(newIPInt)
-		}
-
-		for ip := startIP; ipnet.Contains(ip); nextIP(ip) {
-			if !pauseState {
-				if ip != nil {
-					if isValidIP(ip) {
-						chunk[pointer] = ip.String()
-						if pointer == chunkSize-1 {
-							for {
-								if countThreads < limitThreads {
-									mu.Lock()
-									countThreads += 1
-									mu.Unlock()
-									go scanChunk(chunk, database)
-									break
-								}
+	for ip := startIP; ipnet.Contains(ip); nextIP(ip) {
+		if !pauseState {
+			if ip != nil {
+				if isValidIP(ip) {
+					chunk[pointer] = ip.String()
+					if pointer == chunkSize-1 {
+						for {
+							if countThreads < limitThreads {
+								incCommonVar(&countThreads, &countThreadsMu)
+								go scanChunk(chunk, database)
+								break
 							}
+						}
 
-							for i := 0; i < chunkSize; i++ {
-								chunk[i] = ""
-								pointer = 0
-							}
-						} else {
-							pointer++
+						for i := uint64(0); i < chunkSize; i++ {
+							chunk[i] = ""
+							pointer = 0
 						}
 					} else {
-						mu.Lock()
-						scannedAddress++
-						mu.Unlock()
+						pointer++
 					}
 				} else {
-					for {
-						if countThreads < limitThreads {
-							mu.Lock()
-							countThreads += 1
-							mu.Unlock()
-							go scanChunk(chunk, database)
-							break
-						}
-					}
-					break
+					incCommonVar(&scannedAddress, &countThreadsMu)
 				}
 			} else {
 				for {
-					if !pauseState {
+					if countThreads < limitThreads {
+						incCommonVar(&countThreads, &countThreadsMu)
+						go scanChunk(chunk, database)
 						break
 					}
 				}
-			}
-		}
-
-		for {
-			if countThreads == 0 {
 				break
 			}
+		} else {
+			waitPauseEnd()
 		}
+	}
+	waitCompletionThreads()
+}
 
-		end := time.Now()
+func waitCompletionThreads() {
+	for {
+		if countThreads == 0 {
+			break
+		}
+	}
+}
 
-		println("Scan time:", end.Unix()-start.Unix(), "s.")
-	} else {
-		print("Please use --network flag for set network for scanning in format: address/mask")
+func waitPauseEnd() {
+	for {
+		if !pauseState {
+			break
+		}
 	}
 }
