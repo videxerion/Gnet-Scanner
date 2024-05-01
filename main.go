@@ -26,8 +26,6 @@ var saveFlag *string
 const chunkSize int = 100
 const limitThreads = 300
 
-// TODO: Сделать систему сохранений
-
 func main() {
 	var err error
 	log.Println("Getting flags")

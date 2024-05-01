@@ -71,7 +71,7 @@ func infoScreen() {
 		println(
 			"Progress:",
 			strconv.Itoa(scannedAddress)+"/"+strconv.Itoa(countAddress),
-			strconv.Itoa(percentageOfNumber(scannedAddress, countAddress))+"%",
+			strconv.FormatFloat(percentageOfNumber(float64(scannedAddress), float64(countAddress)), 'f', 2, 64)+"%",
 		)
 		println("Speed:", speed, "ip/s")
 		println("Time left:", timeLeftString)
