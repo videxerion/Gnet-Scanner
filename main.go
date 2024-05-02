@@ -161,7 +161,9 @@ func main() {
 						for {
 							if countThreads < limitThreads {
 								incCommonVar(&countThreads, &countThreadsMu)
-								go scanChunk(chunk, database)
+								chunkCopy := make([]string, chunkSize)
+								copy(chunkCopy, chunk)
+								go scanChunk(chunkCopy, database)
 								break
 							}
 						}
