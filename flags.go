@@ -18,11 +18,11 @@ func pathExist(path string) bool {
 
 func getFlags() {
 	// Получение флагов
-	debugFlagObj := flag.Bool("debug", false, "Enable debug for pprof on localhost:6060")
-	inputNetObj := flag.String("network", "None", "Network for scanning")
-	saveFlagObj := flag.String("save", "None", "Path to save file")
+	debugFlagObj := flag.Bool("Debug", false, "Enable debug for pprof on localhost:6060")
+	inputNetObj := flag.String("Network", "None", "Network for scanning")
+	saveFlagObj := flag.String("Save", "None", "Path to save file")
 	chunkSizeObj := flag.Uint64("ChunkSize", 100, "Number of addresses in the chunk")
-	limitThreadsObj := flag.Uint64("threads", 50, "Number of scanning threads")
+	limitThreadsObj := flag.Uint64("Threads", 50, "Number of scanning threads")
 	connectTimeoutObj := flag.Uint64("ConnectTimeout", 100, "Sets the length of time to wait for a connection (ms)")
 	readTimeoutObj := flag.Uint64("ReadTimeout", 250, "Sets the length of time to wait for reading (ms)")
 	responseSizeObj := flag.Uint64("ResponseSize", GigaByte, "Sets the maximum response size (bytes)")
