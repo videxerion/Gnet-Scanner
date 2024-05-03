@@ -2,7 +2,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -25,6 +27,7 @@ func getFlags() {
 	readTimeoutObj := flag.Uint64("ReadTimeout", 250, "Sets the length of time to wait for reading (ms)")
 	responseSizeObj := flag.Uint64("ResponseSize", GigaByte, "Sets the maximum response size (bytes)")
 	pathToDbObj := flag.String("PathToBD", "results/", "Sets the path where the usrDatabase will be created")
+	enableSavesObj := flag.Bool("EnableSaves", false, "Enables creation of saves")
 	flag.Parse()
 	debugFlag = *debugFlagObj
 	inputNet = *inputNetObj
@@ -35,6 +38,7 @@ func getFlags() {
 	readTimeout = time.Duration(*readTimeoutObj)
 	responseSize = *responseSizeObj
 	pathToDb = *pathToDbObj
+	enableSaves = *enableSavesObj
 }
 
 func checkValidFlags() {
@@ -56,14 +60,29 @@ func checkValidFlags() {
 		os.Exit(0)
 	}
 
+	// Если путь то директории с БД не существует то сообщаем об этом
 	if !pathExist(pathToDb) {
 		println("The specified path to the directory where the usrDatabase should be saved does not exist")
 		os.Exit(0)
 	}
 
-	if usrSave.version != fileSaveVersion {
+	// Если версия сохранения не соответствует програмнной то сообщаем об этом
+	if usrSave.version != fileSaveVersion && saveFlag != "None" {
 		println("The received version of the save file is not compatible with the current version of the program")
 		os.Exit(0)
+	}
+
+	// Если указан файл для сохранения, но само сохранение отключено то сообщаем об этом
+	if !enableSaves && saveFlag != "None" {
+		println("WARNING: A save file is received, but --EnableSaves is false. Changes will not be written to the file. Continue? Y/N")
+		var selection string
+		_, err := fmt.Scan(&selection)
+		if err != nil {
+			panic(err)
+		}
+		if strings.ToLower(selection) != "y" {
+			os.Exit(0)
+		}
 	}
 
 }

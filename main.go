@@ -28,9 +28,10 @@ var (
 // Инициализируем перменные под флаги
 var (
 	// Функциональные флаги
-	debugFlag bool
-	inputNet  string
-	saveFlag  string
+	debugFlag   bool
+	inputNet    string
+	saveFlag    string
+	enableSaves bool
 
 	// Флаги параметров
 	chunkSize      uint64
@@ -108,10 +109,12 @@ func main() {
 	go speedMeter()
 	go infoScreen()
 	go interceptingKeystrokes()
-	if saveFlag == "None" {
-		go saveThread(inputNet, usrDatabase.name)
-	} else {
-		go saveThread(usrSave.inputNet, usrDatabase.name)
+	if enableSaves {
+		if saveFlag == "None" {
+			go saveThread(inputNet, usrDatabase.name)
+		} else {
+			go saveThread(usrSave.inputNet, usrDatabase.name)
+		}
 	}
 
 	// Вычисляем IP с которого нужно начинать сканирование
