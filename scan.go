@@ -31,7 +31,7 @@ func scan(ip string) (error, string) {
 		if err != nil {
 			break
 		} else {
-			if len(buf[:read])+len(resp) <= GigaByte*2 {
+			if uint64(len(buf[:read])+len(resp)) <= responseSize {
 				resp = append(resp, buf[:read]...)
 			} else {
 				return nil, "Too big to record"

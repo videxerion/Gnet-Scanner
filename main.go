@@ -57,7 +57,7 @@ func main() {
 	limitThreadsObj := flag.Uint64("threads", 50, "Number of scanning threads")
 	connectTimeoutObj := flag.Uint64("ConnectTimeout", 100, "Sets the length of time to wait for a connection (ms)")
 	readTimeoutObj := flag.Uint64("ReadTimeout", 250, "Sets the length of time to wait for reading (ms)")
-	responseSizeObj := flag.Uint64("ResponseSize", GigaByte*2, "Sets the maximum response size (bytes)")
+	responseSizeObj := flag.Uint64("ResponseSize", GigaByte, "Sets the maximum response size (bytes)")
 	flag.Parse()
 	debugFlag = *debugFlagObj
 	inputNet = *inputNetObj
@@ -81,7 +81,7 @@ func main() {
 	}
 
 	// Если установленный размер ответа превышает 2 гигабайта то сообщаем об этом
-	if responseSize > GigaByte*2 {
+	if responseSize > GigaByte {
 		println("The maximum response size cannot exceed 2 gigabytes because it corresponds to the BLOB type in sqlite")
 		os.Exit(0)
 	}
