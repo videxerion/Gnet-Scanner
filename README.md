@@ -34,4 +34,5 @@ All you need to do to build a programme is go build in the repository directory.
 | Scanned Addresses |   uint64   | Number of addresses already scanned                          |
 | Path to DB file   |   string   | Database file path                                           |
 | CIDR net          |   string   | The net and the mask                                         |
+
 Note: the string type is a merge of a simple string and its length at the beginning (1 byte). 
