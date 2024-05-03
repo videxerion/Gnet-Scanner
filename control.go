@@ -16,15 +16,14 @@ func interceptingKeystrokes() {
 		char, key, _ := keyboard.GetKey()
 
 		if key == keyboard.KeyCtrlC {
+			setBoolCommonVar(&exitState, &exitMu, true)
+			break
+		} else if key == keyboard.KeyCtrlE {
 			os.Exit(0)
 		} else if char == 'p' || char == 'P' {
-			pauseMu.Lock()
-			pauseState = true
-			pauseMu.Unlock()
+			setBoolCommonVar(&pauseState, &pauseMu, true)
 		} else if char == 'r' || char == 'R' {
-			pauseMu.Lock()
-			pauseState = false
-			pauseMu.Unlock()
+			setBoolCommonVar(&pauseState, &pauseMu, false)
 		}
 	}
 

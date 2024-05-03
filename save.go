@@ -117,7 +117,7 @@ func saveThread(inputNet string, dbName string) {
 
 	defer file.Close()
 
-	for {
+	for !exitState {
 		time.Sleep(time.Second * 1)
 
 		scanned := uint64ToBytes(scannedAddress)

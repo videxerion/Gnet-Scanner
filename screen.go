@@ -29,7 +29,7 @@ func CallClear() {
 	if ok {
 		value()
 	} else {
-		panic("Your platform is unsupported! I can't clearScreen terminal screen :(")
+		panic("Your platform is unsupported! I can't clear terminal screen :(")
 	}
 }
 
@@ -37,7 +37,7 @@ func speedMeter() {
 	var oldCount uint64
 	var newCount uint64
 
-	for {
+	for !exitState {
 		oldCount = scannedAddress
 		time.Sleep(time.Second)
 		newCount = scannedAddress
@@ -48,7 +48,7 @@ func speedMeter() {
 }
 
 func infoScreen() {
-	for {
+	for !exitState {
 		time.Sleep(time.Second / 4)
 
 		var m runtime.MemStats

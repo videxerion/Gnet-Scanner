@@ -15,6 +15,7 @@ var (
 	pauseMu        sync.Mutex
 	dbWriteMu      sync.Mutex
 	ctDbThMu       sync.Mutex
+	exitMu         sync.Mutex
 )
 
 // Переменные для показателей сканированния
@@ -42,7 +43,10 @@ var (
 )
 
 // Состояния для управления
-var pauseState = false
+var (
+	pauseState = false
+	exitState  = false
+)
 
 var usrSave save
 
