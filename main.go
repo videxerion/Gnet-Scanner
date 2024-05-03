@@ -1,9 +1,7 @@
 package main
 
 import (
-	"flag"
 	"net"
-	"os"
 	"sync"
 	"time"
 )
@@ -40,6 +38,7 @@ var (
 	connectTimeout time.Duration
 	readTimeout    time.Duration
 	responseSize   uint64
+	pathToDb       string
 )
 
 // Состояния для управления
@@ -48,53 +47,26 @@ var (
 	exitState  = false
 )
 
+// Константы
+const fileSaveVersion uint64 = 1
+
 var usrSave save
+var usrDatabase *Db
 
 func main() {
 	var err error
 
 	// Получение флагов
-	debugFlagObj := flag.Bool("debug", false, "Enable debug for pprof on localhost:6060")
-	inputNetObj := flag.String("network", "None", "Network for scanning")
-	saveFlagObj := flag.String("save", "None", "Path to save file")
-	chunkSizeObj := flag.Uint64("ChunkSize", 100, "Number of addresses in the chunk")
-	limitThreadsObj := flag.Uint64("threads", 50, "Number of scanning threads")
-	connectTimeoutObj := flag.Uint64("ConnectTimeout", 100, "Sets the length of time to wait for a connection (ms)")
-	readTimeoutObj := flag.Uint64("ReadTimeout", 250, "Sets the length of time to wait for reading (ms)")
-	responseSizeObj := flag.Uint64("ResponseSize", GigaByte, "Sets the maximum response size (bytes)")
-	flag.Parse()
-	debugFlag = *debugFlagObj
-	inputNet = *inputNetObj
-	saveFlag = *saveFlagObj
-	chunkSize = *chunkSizeObj
-	limitThreads = *limitThreadsObj
-	connectTimeout = time.Duration(*connectTimeoutObj)
-	readTimeout = time.Duration(*readTimeoutObj)
-	responseSize = *responseSizeObj
-
-	// Если не указан ни один из обязательных флагов то сообщаем об этом
-	if inputNet == "None" && saveFlag == "None" {
-		println("To start scanning, you must specify the network using the flag: --network {ip/mask}")
-		os.Exit(0)
-	}
-
-	// Если указаны сразу оба обязательных флага то сообщаем об этом
-	if saveFlag != "None" && inputNet != "None" {
-		println("It is not possible to use the --network flag together with the --save flag")
-		os.Exit(0)
-	}
-
-	// Если установленный размер ответа превышает 2 гигабайта то сообщаем об этом
-	if responseSize > GigaByte {
-		println("The maximum response size cannot exceed 2 gigabytes because it corresponds to the BLOB type in sqlite")
-		os.Exit(0)
-	}
+	getFlags()
 
 	// Если указан путь к файлу сохранения то пытаемся его распарсить
 	if saveFlag != "None" {
 		usrSave = parseSaveFile(saveFlag)
 		scannedAddress = usrSave.scannedAddr
 	}
+
+	// Проверка корректности полученных флагов
+	checkValidFlags()
 
 	// Если включён режим отладки то запускаем pprof на localhost:6060 и детектор утечек
 	if debugFlag {
@@ -115,13 +87,12 @@ func main() {
 	}
 
 	// Создаём и подключаем базу данных
-	var database *Db
 	if saveFlag == "None" {
-		database = Database(time.Now().Format(time.DateTime) + " result.db")
+		usrDatabase = Database(pathToDb + time.Now().Format(time.DateTime) + " result.db")
 	} else {
-		database = Database(usrSave.dbName)
+		usrDatabase = Database(usrSave.dbName)
 	}
-	database.createTable()
+	usrDatabase.createTable()
 
 	// Считаем кол-во адрессов в указанной сети
 	if saveFlag == "None" {
@@ -138,9 +109,9 @@ func main() {
 	go infoScreen()
 	go interceptingKeystrokes()
 	if saveFlag == "None" {
-		go saveThread(inputNet, database.name)
+		go saveThread(inputNet, usrDatabase.name)
 	} else {
-		go saveThread(usrSave.inputNet, database.name)
+		go saveThread(usrSave.inputNet, usrDatabase.name)
 	}
 
 	// Вычисляем IP с которого нужно начинать сканирование
@@ -167,7 +138,7 @@ func main() {
 								incCommonVar(&countThreads, &countThreadsMu)
 								chunkCopy := make([]string, chunkSize)
 								copy(chunkCopy, chunk)
-								go scanChunk(chunkCopy, database)
+								go scanChunk(chunkCopy, usrDatabase)
 								break
 							}
 						}
@@ -186,7 +157,7 @@ func main() {
 				for {
 					if countThreads < limitThreads {
 						incCommonVar(&countThreads, &countThreadsMu)
-						go scanChunk(chunk, database)
+						go scanChunk(chunk, usrDatabase)
 						break
 					}
 				}

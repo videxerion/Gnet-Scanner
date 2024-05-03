@@ -1,14 +1,13 @@
 package main
 
 import (
-	"bytes"
-	"encoding/binary"
 	"os"
 	"strings"
 	"time"
 )
 
 type save struct {
+	version     uint64
 	scannedAddr uint64
 	dbName      string
 	inputNet    string
@@ -21,12 +20,15 @@ func parseSaveFile(path string) save {
 	}
 
 	var retSave save
-	retSave.scannedAddr = bytesToUint64(content[:8])
-
-	dbNameLen := content[8]
-	retSave.dbName = bytesToString(content[9 : dbNameLen+9])
-
-	retSave.inputNet = bytesToString(content[9+dbNameLen+1:])
+	// Получаем версию сохранения
+	retSave.version = bytesToUint64(content[:8])
+	// Получаем кол-во отсканированных адресов
+	retSave.scannedAddr = bytesToUint64(content[8:16])
+	// Получаем путь до базы данных
+	dbNameLen := content[16]
+	retSave.dbName = bytesToString(content[17 : dbNameLen+17])
+	// Получаем сеть и маску
+	retSave.inputNet = bytesToString(content[19+dbNameLen:])
 
 	return retSave
 
@@ -61,27 +63,6 @@ func clearFile(file *os.File) error {
 	}
 
 	return nil
-}
-
-func uint64ToBytes(num uint64) []byte {
-	buf := new(bytes.Buffer)
-	err := binary.Write(buf, binary.BigEndian, num)
-	if err != nil {
-		panic(err)
-	}
-	return buf.Bytes()
-}
-
-func bytesToUint64(b []byte) uint64 {
-	return binary.BigEndian.Uint64(b)
-}
-
-func stringToBytes(str string) []byte {
-	return []byte(str)
-}
-
-func bytesToString(b []byte) string {
-	return string(b)
 }
 
 func saveThread(inputNet string, dbName string) {
@@ -120,24 +101,30 @@ func saveThread(inputNet string, dbName string) {
 	for !exitState {
 		time.Sleep(time.Second * 1)
 
-		scanned := uint64ToBytes(scannedAddress)
-
+		// Инициализируем переменную с будущим содержимым файла
 		var wrBuf []byte
 
+		// Записываем номер версии
+		versionBytes := uint64ToBytes(fileSaveVersion)
+		wrBuf = append(wrBuf, versionBytes...)
+
+		// Записываем сколько адресов было отсканировано
+		scanned := uint64ToBytes(scannedAddress)
 		wrBuf = append(wrBuf, scanned...)
 
+		// Записываем путь до базы данных
 		dbNameBytes := stringToBytes(dbName)
 		length := byte(len(dbNameBytes))
 		dbNameBytes = append([]byte{length}, dbNameBytes...)
-
 		wrBuf = append(wrBuf, dbNameBytes...)
 
+		// Записываем маску и сеть
 		netBytes := stringToBytes(inputNet)
 		length = byte(len(netBytes))
 		netBytes = append([]byte{length}, netBytes...)
-
 		wrBuf = append(wrBuf, netBytes...)
 
+		// Если файл не пустой то очищаем
 		if !isEmptyFile(file) {
 			err = clearFile(file)
 			if err != nil {
@@ -145,6 +132,7 @@ func saveThread(inputNet string, dbName string) {
 			}
 		}
 
+		// Записываем новые данные в файл
 		_, err = file.Write(wrBuf)
 		if err != nil {
 			panic(err)

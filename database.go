@@ -26,11 +26,7 @@ func directoryExist(filename string) bool {
 }
 
 func Database(name string) *Db {
-	if !directoryExist("results") {
-		os.Mkdir("results", 0755)
-	}
-
-	database, err := sql.Open("sqlite3", "results/"+name)
+	database, err := sql.Open("sqlite3", name)
 
 	if err != nil {
 		log.Fatal(err.Error())

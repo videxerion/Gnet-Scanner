@@ -1,6 +1,13 @@
 package main
 
-import "strconv"
+import (
+	"bytes"
+	"encoding/binary"
+	"net"
+	"strconv"
+)
+
+// Конвертация времени
 
 const minute = 60
 const hour = minute * 60
@@ -126,4 +133,41 @@ func (sz Size) ToString() string {
 	}
 
 	return sizeString
+}
+
+// Конвертация байтов
+
+func uint64ToBytes(num uint64) []byte {
+	buf := new(bytes.Buffer)
+	err := binary.Write(buf, binary.BigEndian, num)
+	if err != nil {
+		panic(err)
+	}
+	return buf.Bytes()
+}
+
+func bytesToUint64(b []byte) uint64 {
+	return binary.BigEndian.Uint64(b)
+}
+
+func stringToBytes(str string) []byte {
+	return []byte(str)
+}
+
+func bytesToString(b []byte) string {
+	return string(b)
+}
+
+// Конвертация IP адреса
+func ipToUint64(ip net.IP) uint64 {
+	return uint64(ip[0])<<24 | uint64(ip[1])<<16 | uint64(ip[2])<<8 | uint64(ip[3])
+}
+
+func uint64ToIP(value uint64) net.IP {
+	ip := make(net.IP, 4)
+	ip[0] = byte(value >> 24)
+	ip[1] = byte(value >> 16)
+	ip[2] = byte(value >> 8)
+	ip[3] = byte(value)
+	return ip
 }
