@@ -40,6 +40,7 @@ var (
 	readTimeout    time.Duration
 	responseSize   uint64
 	pathToDb       string
+	pathToSaves    string
 )
 
 // Состояния для управления

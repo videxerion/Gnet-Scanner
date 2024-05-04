@@ -28,6 +28,7 @@ func getFlags() {
 	responseSizeObj := flag.Uint64("ResponseSize", GigaByte, "Sets the maximum response size (bytes)")
 	pathToDbObj := flag.String("PathToBD", "results/", "Sets the path where the usrDatabase will be created")
 	enableSavesObj := flag.Bool("EnableSaves", false, "Enables creation of saves")
+	pathToSavesObj := flag.String("PathToSaves", "saves/", "Sets the path to the save folder")
 	flag.Parse()
 	debugFlag = *debugFlagObj
 	inputNet = *inputNetObj
@@ -39,6 +40,7 @@ func getFlags() {
 	responseSize = *responseSizeObj
 	pathToDb = *pathToDbObj
 	enableSaves = *enableSavesObj
+	pathToSaves = *pathToSavesObj
 }
 
 func checkValidFlags() {
@@ -64,6 +66,34 @@ func checkValidFlags() {
 	if !pathExist(pathToDb) {
 		println("The specified path to the directory where the usrDatabase should be saved does not exist")
 		os.Exit(0)
+	}
+
+	// Если путь то директории с сохранениями не существует то сообщаем об этом
+	if !pathExist(pathToSaves) {
+		println("The specified path to the directory where the saves should be saved does not exist")
+		os.Exit(0)
+	}
+
+	// Если указан путь до сохранения, но сохранения отключены то сообщаем об этом
+	if pathToSaves != "saves/" && !enableSaves {
+		println("A non-standard path to the directory with saves is specified, but the saves themselves are disabled. Enable saves with --EnableSaves=true or clear the --PathToSaves flag.")
+		os.Exit(0)
+	}
+
+	// Если включена загрузка из сохранения, но указан путь до новой папки с сохранением то сообщаем об этом
+	if pathToSaves != "saves/" && saveFlag != "None" {
+		println("A non-standard path to the save directory is specified, but loading from the save file is enabled. Remove either --PathToSaves or --Save")
+		os.Exit(0)
+	}
+
+	// Если на конце пути нету разделителя, то добавляем
+	if pathToDb[len(pathToDb)-1] != '/' || pathToSaves[len(pathToSaves)-1] != '/' {
+		if pathToDb[len(pathToDb)-1] != '/' {
+			pathToDb += "/"
+		}
+		if pathToSaves[len(pathToSaves)-1] != '/' {
+			pathToSaves += "/"
+		}
 	}
 
 	// Если версия сохранения не соответствует програмнной то сообщаем об этом

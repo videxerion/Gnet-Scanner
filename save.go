@@ -68,7 +68,7 @@ func clearFile(file *os.File) error {
 func saveThread(inputNet string, dbName string) {
 	var err error
 
-	if !directoryExist("saves") {
+	if !directoryExist("saves") && pathToSaves == "saves/" {
 		os.Mkdir("saves", 0755)
 	}
 
@@ -87,7 +87,7 @@ func saveThread(inputNet string, dbName string) {
 	var file *os.File
 
 	if saveFlag == "None" {
-		file, err = os.OpenFile("saves/"+filename, os.O_RDWR|os.O_CREATE, 0755)
+		file, err = os.OpenFile(pathToSaves+filename, os.O_RDWR|os.O_CREATE, 0755)
 	} else {
 		file, err = os.OpenFile(saveFlag, os.O_RDWR|os.O_CREATE, 0755)
 	}
