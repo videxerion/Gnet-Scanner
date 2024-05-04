@@ -3,10 +3,8 @@ module Gnet-Scanner
 go 1.22.2
 
 require (
-	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203 // indirect
 	github.com/gen2brain/beeep v0.0.0-20240112042604-c7bb2cd88fea // indirect
-	github.com/go-sql-driver/mysql v1.8.1 // indirect
 	github.com/go-toast/toast v0.0.0-20190211030409-01e6764cf0a4 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/mattn/go-sqlite3 v1.14.22 // indirect
