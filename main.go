@@ -9,11 +9,12 @@ import _ "net/http/pprof"
 
 // Создаём мютексы
 var (
-	countThreadsMu sync.Mutex
-	pauseMu        sync.Mutex
-	dbWriteMu      sync.Mutex
-	ctDbThMu       sync.Mutex
-	exitMu         sync.Mutex
+	countThreadsMu   sync.Mutex
+	scannedAddressMu sync.Mutex
+	pauseMu          sync.Mutex
+	dbWriteMu        sync.Mutex
+	ctDbThMu         sync.Mutex
+	exitMu           sync.Mutex
 )
 
 // Переменные для показателей сканированния
@@ -131,49 +132,70 @@ func main() {
 	chunk := make([]string, chunkSize)
 	var pointer uint64 = 0
 
+	// Начинаем перебор
 	for ip := startIP; ipnet.Contains(ip); nextIP(ip) {
-		if !pauseState {
-			if ip != nil {
-				if isValidIP(ip) {
-					chunk[pointer] = ip.String()
-					if pointer == chunkSize-1 {
-						for {
-							if countThreads < limitThreads {
-								incCommonVar(&countThreads, &countThreadsMu)
-								chunkCopy := make([]string, chunkSize)
-								copy(chunkCopy, chunk)
-								go scanChunk(chunkCopy, usrDatabase)
-								break
-							}
-						}
 
-						for i := uint64(0); i < chunkSize; i++ {
-							chunk[i] = ""
-							pointer = 0
-						}
-					} else {
-						pointer++
-					}
-				} else {
-					incCommonVar(&scannedAddress, &countThreadsMu)
-				}
-			} else {
-				for {
-					if countThreads < limitThreads {
-						incCommonVar(&countThreads, &countThreadsMu)
-						go scanChunk(chunk, usrDatabase)
-						break
-					}
-				}
-				break
-			}
-		} else {
+		// Если кончились IP адреса, то выходим из цикла
+		if ip == nil {
+			break
+		}
+
+		// Ожидаем завершение паузы если была поставлена
+		if pauseState {
 			waitPauseEnd()
 		}
+
+		// Если IP действителен то записываем в чанк, иначе пропускаем
+		if isValidIP(ip) {
+			chunk[pointer] = ip.String()
+		} else {
+			incCommonVar(&scannedAddress, &scannedAddressMu)
+			continue
+		}
+
+		// Если чанк заполнен до конца, то отправляем на сканирование
+		if pointer == chunkSize-1 {
+			sendChunkForScanning(chunk)
+			clearChunk(&chunk)
+
+			pointer = 0
+		} else {
+			pointer++
+		}
+
 	}
+
+	// Отправляем последний чанк на сканирование
+	waitForThreadToFree()
+	sendChunkForScanning(chunk)
+
+	// Ждём завершения потоков
 	waitCompletionThreads()
 }
 
+// Функция отправляет чанк на сканирование
+func sendChunkForScanning(chunk []string) {
+	waitForThreadToFree()
+
+	incCommonVar(&countThreads, &countThreadsMu)
+
+	chunkCopy := make([]string, chunkSize)
+	copy(chunkCopy, chunk)
+
+	go scanChunk(chunkCopy, usrDatabase)
+
+}
+
+// Функция ожидаает пока не освободится место для нового потока
+func waitForThreadToFree() {
+	for {
+		if countThreads < limitThreads {
+			break
+		}
+	}
+}
+
+// Функция ожидает пока не завершатся все потоки
 func waitCompletionThreads() {
 	for {
 		if countThreads == 0 {
@@ -182,10 +204,19 @@ func waitCompletionThreads() {
 	}
 }
 
+// Функция ожидает пока пауза не будет снята
 func waitPauseEnd() {
 	for {
 		if !pauseState {
 			break
 		}
+	}
+}
+
+// Функция очищает чанк
+func clearChunk(chunkPointer *[]string) {
+	chunk := *chunkPointer
+	for i := uint64(0); i < chunkSize; i++ {
+		chunk[i] = ""
 	}
 }
