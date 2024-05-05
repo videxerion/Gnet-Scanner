@@ -137,6 +137,9 @@ func main() {
 
 		// Если кончились IP адреса, то выходим из цикла
 		if ip == nil {
+			// Отправляем последний чанк на сканирование
+			waitForThreadToFree()
+			sendChunkForScanning(chunk)
 			break
 		}
 
@@ -164,10 +167,6 @@ func main() {
 		}
 
 	}
-
-	// Отправляем последний чанк на сканирование
-	waitForThreadToFree()
-	sendChunkForScanning(chunk)
 
 	// Ждём завершения потоков
 	waitCompletionThreads()
