@@ -138,7 +138,6 @@ func main() {
 		// Если кончились IP адреса, то выходим из цикла
 		if ip == nil {
 			// Отправляем последний чанк на сканирование
-			waitForThreadToFree()
 			sendChunkForScanning(chunk)
 			break
 		}
