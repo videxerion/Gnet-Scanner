@@ -9,12 +9,9 @@ import _ "net/http/pprof"
 
 // Создаём мютексы
 var (
-	countThreadsMu   sync.Mutex
-	scannedAddressMu sync.Mutex
-	pauseMu          sync.Mutex
-	dbWriteMu        sync.Mutex
-	ctDbThMu         sync.Mutex
-	exitMu           sync.Mutex
+	pauseMu   sync.Mutex
+	dbWriteMu sync.Mutex
+	exitMu    sync.Mutex
 )
 
 // Переменные для показателей сканированния
@@ -151,7 +148,7 @@ func main() {
 		if isValidIP(ip) {
 			chunk[pointer] = ip.String()
 		} else {
-			incCommonVar(&scannedAddress, &scannedAddressMu)
+			incCommonVar(&scannedAddress)
 			continue
 		}
 
@@ -175,7 +172,7 @@ func main() {
 func sendChunkForScanning(chunk []string) {
 	waitForThreadToFree()
 
-	incCommonVar(&countThreads, &countThreadsMu)
+	incCommonVar(&countThreads)
 
 	chunkCopy := make([]string, chunkSize)
 	copy(chunkCopy, chunk)

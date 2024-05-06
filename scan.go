@@ -60,7 +60,7 @@ func scanChunk(chunk []string, database *Db) {
 					go database.Add(addr, resp)
 				}
 
-				incCommonVar(&scannedAddress, &scannedAddressMu)
+				incCommonVar(&scannedAddress)
 			}
 		} else {
 			for {
@@ -73,5 +73,5 @@ func scanChunk(chunk []string, database *Db) {
 			}
 		}
 	}
-	subCommonVar(&countThreads, &countThreadsMu)
+	subCommonVar(&countThreads)
 }

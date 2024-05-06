@@ -47,8 +47,8 @@ func (d Db) createTable() {
 
 func (d Db) Add(ip string, response string) {
 	// Изменяем счётчик потоков
-	incCommonVar(&countDbThreads, &ctDbThMu)
-	defer subCommonVar(&countDbThreads, &ctDbThMu)
+	incCommonVar(&countDbThreads)
+	defer subCommonVar(&countDbThreads)
 
 	// Блокируем для записи
 	dbWriteMu.Lock()
