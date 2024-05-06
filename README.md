@@ -1,5 +1,5 @@
 # Gnet Scanner
-A multithreaded CLI tool for scanning the network and collecting results, written in Golang.
+A multithreading CLI tool for scanning the network and collecting results, written in Golang.
 ## Assembly and start-up
 All you need to do to build a programme is go build in the repository directory.
 ```go build```
