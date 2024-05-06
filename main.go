@@ -214,7 +214,7 @@ func waitPauseEnd() {
 // Функция очищает чанк
 func clearChunk(chunkPointer *[]string) {
 	chunk := *chunkPointer
-	for i := uint64(0); i < chunkSize; i++ {
+	for i := range chunk {
 		chunk[i] = ""
 	}
 }

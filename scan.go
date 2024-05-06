@@ -47,7 +47,7 @@ func scan(ip string) (error, string) {
 }
 
 func scanChunk(chunk []string, database *Db) {
-	for i := uint64(0); i < chunkSize; i++ {
+	for i := range chunk {
 		if exitState {
 			break
 		}
