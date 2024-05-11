@@ -10,7 +10,7 @@ func incCommonVar(target *uint64) {
 }
 
 func subCommonVar(target *uint64) {
-	atomic.AddUint64(target, -1)
+	atomic.AddUint64(target, ^uint64(0))
 }
 
 func setBoolCommonVar(target *bool, varMu *sync.Mutex, value bool) {
