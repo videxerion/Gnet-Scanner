@@ -28,7 +28,7 @@ func parseSaveFile(path string) save {
 	dbNameLen := content[16]
 	retSave.dbName = bytesToString(content[17 : dbNameLen+17])
 	// Получаем сеть и маску
-	retSave.inputNet = bytesToString(content[19+dbNameLen:])
+	retSave.inputNet = bytesToString(content[18+dbNameLen:])
 
 	return retSave
 
